@@ -55,4 +55,9 @@ export interface Merma {
 // Eso lo decide el dominio, no quien manda la peticion.
 export type NuevoProducto = Omit<Producto, 'id' | 'unidadMedida'>;
 export type NuevoPedido = Omit<Pedido, 'id' | 'fecha' | 'estado'>;
-export type NuevoLote = Omit<Pedido, 'id' | 'fechaIngreso' | 'fechaCaducidad'>;
+export type NuevoLote = Omit<Lote, 'id'>;
+
+export interface LineaPedido {
+  productoId: number;
+  cantidad: number;
+}

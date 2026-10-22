@@ -17,11 +17,7 @@ export class LoteNoEncontradoError extends Error {
 }
 
 export class InventarioInsuficienteError extends Error {
-  constructor(
-    productoId: number,
-    solicitado: number,
-    disponible: number,
-  ) {
+  constructor(productoId: number, solicitado: number, disponible: number) {
     super(
       `Producto ${productoId}: solicitado ${solicitado}, disponible ${disponible}`,
     );
@@ -29,13 +25,8 @@ export class InventarioInsuficienteError extends Error {
 }
 
 export class ProductoCaducadoError extends Error {
-  constructor(
-    productoId: number,
-    loteId: number,
-  ) {
-    super(
-      `El lote ${loteId} del producto ${productoId} ya esta caducado`,
-    );
+  constructor(productoId: number, loteId: number) {
+    super(`El lote ${loteId} del producto ${productoId} ya esta caducado`);
   }
 }
 
@@ -47,6 +38,20 @@ export class PedidoYaSurtidoError extends Error {
 
 export class CantidadInvalidaError extends Error {
   constructor(cantidad: number) {
-    super(`La cantidad ${cantidad} debe ser mayor que cero`);
+    super(`La cantidad ${cantidad} debe ser finita y mayor que cero`);
+  }
+}
+
+export class StockMinimoComprometidoError extends Error {
+  constructor(productoId: number, minimo: number) {
+    super(
+      `El surtido del producto ${productoId} dejaría menos del stock mínimo ${minimo}`,
+    );
+  }
+}
+
+export class FechaInvalidaError extends Error {
+  constructor() {
+    super('Las fechas deben ser válidas y la caducidad posterior al ingreso');
   }
 }

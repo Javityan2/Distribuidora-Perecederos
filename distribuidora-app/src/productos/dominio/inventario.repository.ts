@@ -1,9 +1,18 @@
-import { Producto, Lote, Pedido, Merma, NuevoPedido, MovimientoSurtido } from './entidades';
+import {
+  Producto,
+  Lote,
+  Pedido,
+  Merma,
+  NuevoPedido,
+  MovimientoSurtido,
+} from './entidades';
 
 // La interfaz que el Service conoce. No sabe si detras hay un Map en memoria o MySQL.
 // Todos los metodos devuelven Promise aunque hoy el Map no lo necesite:
 // el contrato se diseña para el caso mas lento.
 export interface InventarioRepository {
+  // Todo el caso de uso se confirma o se revierte; evita surtidos concurrentes.
+  enTransaccion<T>(operacion: () => Promise<T>): Promise<T>;
   listarProductos(): Promise<Producto[]>;
   buscarProducto(productoId: number): Promise<Producto | null>;
 
