@@ -1,13 +1,42 @@
 # Distribuidora de perecederos
 
-Proyecto individual: https://github.com/Javityan2/Distribuidora-Perecederos
+Desarrollé este proyecto para administrar el inventario y la distribución de carnes a restaurantes. El sistema organiza las existencias por lotes, utiliza la fecha de caducidad para decidir el orden de surtido y registra las pérdidas por merma.
 
-Entrega 2 en la rama `feat-servicio`. Backend NestJS + MySQL, dominio independiente de HTTP, repositorios intercambiables, JWT y permisos por rol.
+El código del avance 2 está en la rama `feat-servicio` de [Distribuidora-Perecederos](https://github.com/Javityan2/Distribuidora-Perecederos).
 
-## Instalación desde cero (PowerShell)
+## Arquitectura
 
-1. Instalar Node.js (verificado con 26.8.1), npm y MySQL Server 8 (verificado con 8.0.41). Workbench es opcional. El usuario de MySQL debe poder crear tablas en la base elegida.
-2. Clonar y seleccionar la rama:
+Separé las reglas del negocio de la entrada HTTP y del almacenamiento. `InventarioService` trabaja con el contrato `InventarioRepository`; la implementación MySQL se selecciona en `ProductosModule`. Los repositorios en memoria se conservan para ejecutar los escenarios del dominio.
+
+La aplicación utiliza NestJS 11, TypeScript, TypeORM y MySQL 8. La autenticación utiliza JWT con vencimiento de 15 minutos y las contraseñas se almacenan mediante Argon2id.
+
+## Funcionalidades
+
+- Consulta de productos y creación de productos por el administrador.
+- Registro de lotes con proveedor, cantidad y fechas de ingreso y caducidad.
+- Creación y consulta de pedidos con acceso limitado al cliente propietario.
+- Surtido FEFO: primero se utiliza el lote vigente que caduca antes.
+- Protección del stock mínimo y rechazo de surtidos duplicados.
+- Registro de mermas por caducidad, daño o faltante.
+- Registro de usuarios, inicio de sesión y permisos por rol.
+
+## Organización
+
+| Carpeta | Contenido |
+|---|---|
+| `distribuidora-app/src/productos` | Dominio, persistencia y rutas del inventario |
+| `distribuidora-app/src/usuarios` | Usuarios, autenticación y autorización |
+| `distribuidora-app/src/database` | Conexión, migraciones y datos iniciales |
+| `distribuidora-app/src/common` | Configuración HTTP y manejo de errores |
+| `distribuidora-app/test` | Pruebas HTTP y de integración con MySQL |
+| `docs` | Fuentes de la documentación |
+| `output/pdf` | Documentos de los avances |
+
+## Entorno y ejecución
+
+El proyecto se verificó con Node.js 26.8.1 y MySQL Server 8.0.41. La configuración local reside en `distribuidora-app/.env`, excluido del control de versiones. `.env.example` contiene los nombres de las variables y valores de referencia.
+
+La preparación de una copia nueva corresponde a la siguiente secuencia:
 
 ```powershell
 git clone https://github.com/Javityan2/Distribuidora-Perecederos.git
@@ -18,21 +47,23 @@ npm ci
 Copy-Item .env.example .env
 ```
 
-3. En MySQL ejecutar:
+La base de datos se crea en MySQL con:
 
 ```sql
-CREATE DATABASE distribuidora_perecederos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE distribuidora_perecederos
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 ```
 
-4. Editar `.env` con los datos reales de conexión. Para `JWT_SECRET`, generar una clave local:
+Las variables `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD` y `DB_DATABASE` definen la conexión. `JWT_SECRET` corresponde a una clave aleatoria local; su generación utiliza:
 
 ```powershell
 node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 ```
 
-Generar también tres contraseñas locales de al menos 12 caracteres para `SEED_ADMIN_PASSWORD`, `SEED_ALMACEN_PASSWORD` y `SEED_CLIENTE_PASSWORD`. No usar los valores de relleno. No publicar `.env`, tokens ni contraseñas. `CORS_ORIGINS` contiene los orígenes exactos de los futuros clientes, separados por comas; inicialmente localhost:4200 y localhost:5173. Cambiarlos a las direcciones reales de los avances 3 y 4 cuando se conozcan.
+Las variables `SEED_ADMIN_PASSWORD`, `SEED_ALMACEN_PASSWORD` y `SEED_CLIENTE_PASSWORD` contienen contraseñas locales de al menos 12 caracteres. Los valores `REEMPLAZAR` del ejemplo no son credenciales válidas. Ninguna contraseña real ni clave JWT forma parte del repositorio.
 
-5. Crear estructura y datos:
+Con los valores locales configurados, la estructura, los datos iniciales y el servidor se preparan con:
 
 ```powershell
 npm run migration:run
@@ -42,50 +73,60 @@ npm run build
 npm run start:dev
 ```
 
-6. Abrir http://localhost:3000/docs. El contrato OpenAPI se consulta en http://localhost:3000/docs-json. En Swagger, iniciar sesión, copiar solo `data.accessToken` al botón Authorize y probar las rutas protegidas. Los tokens vencen en 15 minutos.
+La API utiliza el puerto 3000 por defecto. La documentación interactiva está disponible en [localhost:3000/docs](http://localhost:3000/docs) y el contrato OpenAPI en `/docs-json`.
 
-## Cuentas de demostración
+## Datos iniciales
 
-| Correo | Rol | Contraseña local |
+| Cuenta | Rol | Variable de contraseña |
 |---|---|---|
-| admin@distribuidora.local | administrador | SEED_ADMIN_PASSWORD |
-| almacen@distribuidora.local | almacenista | SEED_ALMACEN_PASSWORD |
-| restaurante@distribuidora.local | cliente | SEED_CLIENTE_PASSWORD |
+| `admin@distribuidora.local` | administrador | `SEED_ADMIN_PASSWORD` |
+| `almacen@distribuidora.local` | almacenista | `SEED_ALMACEN_PASSWORD` |
+| `restaurante@distribuidora.local` | cliente | `SEED_CLIENTE_PASSWORD` |
 
-El seed crea lo que falte sin cambiar contraseñas ni reponer saldos de registros existentes. Crea un producto de demostración, dos lotes vigentes de 10 kg, un lote caducado de 50 kg y un pedido recibido. Las fechas se calculan respecto al día del primer seed; para una demostración posterior, registrar lotes nuevos desde la API. El seed no se ejecuta en cada arranque.
+El seed crea los registros faltantes sin sobrescribir contraseñas ni saldos. Incluye un producto, dos lotes vigentes de 10 kg, un lote caducado de 50 kg y un pedido recibido. Las fechas son relativas a la primera ejecución y las existencias cambian con las operaciones posteriores.
 
-## Puntos de entrada y permisos
+## Roles y puntos de entrada
 
 | Método y ruta | Acceso |
 |---|---|
-| GET / | Público; estado básico |
-| GET /productos; GET /productos/:id | Público; catálogo |
-| POST /productos | Administrador |
-| POST /auth/registro; POST /auth/login | Público |
-| GET /auth/perfil | Usuario autenticado y activo |
-| GET /usuarios | Administrador |
-| GET /productos/:id/lotes; POST /lotes | Administrador y almacenista |
-| GET /pedidos; GET /pedidos/:id; POST /pedidos | Cliente sobre sus propios pedidos; personal sobre todos |
-| POST /pedidos/:id/surtidos | Administrador y almacenista |
-| GET /mermas; POST /mermas | Administrador y almacenista |
+| `GET /` | Público |
+| `GET /productos`, `GET /productos/:id` | Público |
+| `POST /productos` | Administrador |
+| `POST /auth/registro`, `POST /auth/login` | Público |
+| `GET /auth/perfil` | Usuario autenticado y activo |
+| `GET /usuarios` | Administrador |
+| `GET /productos/:id/lotes`, `POST /lotes` | Administrador y almacenista |
+| `GET /pedidos`, `GET /pedidos/:id`, `POST /pedidos` | Cliente: propios; personal: todos |
+| `POST /pedidos/:id/surtidos` | Administrador y almacenista |
+| `GET /mermas`, `POST /mermas` | Administrador y almacenista |
 
-Las líneas se reciben al surtir, según el modelo del avance 1; no se almacena un detalle previo del pedido. Reparto y entrega son estados del modelo, sin operaciones implementadas en esta entrega. Proveedor sigue siendo texto del lote. No se anuncia CRUD de casos de uso que no existen en el dominio.
+El registro público asigna el rol cliente. Las credenciales se envían mediante `Authorization: Bearer <token>`. El guard verifica la firma, el vencimiento y el estado del usuario; los permisos se comprueban con el rol actual en MySQL.
 
 ## Contrato HTTP
 
-Éxito: `{ "data": ... }`. Error: `{ "data": null, "error": { "codigo": "...", "mensaje": "..." }, "meta": { "statusCode": 409, "path": "/..." } }`.
+Las respuestas exitosas tienen la forma `{ "data": ... }`. Los errores tienen la forma `{ "data": null, "error": { "codigo": "...", "mensaje": "..." }, "meta": { "statusCode": 409, "path": "/..." } }`.
 
-200 consulta/login, 201 creación, 400 entrada mal formada, 401 falta/alteración/vencimiento de credencial, 403 rol o propietario incorrecto, 404 recurso inexistente, 409 restricción del negocio o conflicto de datos. Una cantidad numérica cero o negativa llega al dominio y genera 409; un campo que debería ser número y contiene texto genera 400. Los mensajes SQL y secretos no se devuelven al cliente.
+| Estado | Significado |
+|---|---|
+| 200 | Consulta o inicio de sesión correcto |
+| 201 | Recurso creado |
+| 400 | Datos de entrada mal formados |
+| 401 | Credencial ausente, inválida o vencida |
+| 403 | Rol o propietario sin permiso |
+| 404 | Recurso inexistente |
+| 409 | Restricción del negocio o conflicto con los datos |
 
-## Reglas y persistencia
+Una cantidad numérica cero o negativa llega al dominio y genera un conflicto; un texto en un campo numérico genera una petición inválida. Los detalles SQL y las credenciales no aparecen en las respuestas.
 
-InventarioService conserva las reglas del avance 1. La fábrica de `ProductosModule` elige `MysqlInventarioRepository`; para ejecutar el dominio en memoria están los escenarios originales. Ambos cumplen el mismo contrato. `MysqlUsuarioRepository` cumple el contrato original de perfiles; su método crear genera una credencial aleatoria no recuperable porque ese contrato no recibe contraseña. Para usuarios que deban iniciar sesión se utiliza el registro público o el seed.
+## Persistencia y configuración
 
-FEFO excluye lotes caducados y futuros; protege stock mínimo; impide doble surtido y cantidades inválidas. Los cambios del caso de uso comparten una transacción SERIALIZABLE mediante AsyncLocalStorage. Un conflicto concurrente se revierte y responde 409; consultar el estado antes de reintentar. Merma y descuento se confirman juntos. Las fechas HTTP requieren zona horaria; conexión y migraciones usan UTC. Las cantidades HTTP aceptan hasta tres decimales y los precios dos, de acuerdo con MySQL.
+El historial contiene dos migraciones: creación del inventario e incorporación de `password_hash`. `synchronize` está desactivado. Los descuentos, movimientos y cambios de estado se agrupan en transacciones SERIALIZABLE; un error revierte la operación completa. Los conflictos concurrentes generan 409 y no confirman salidas duplicadas.
 
-`src/database/migrations` conserva los dos cambios históricos. `synchronize` permanece desactivado. No editar migraciones ya aplicadas: crear otra para cambios futuros. Las entidades ORM describen tablas y las interfaces de dominio describen el negocio.
+Las fechas HTTP incluyen zona horaria y la conexión utiliza UTC. Las cantidades admiten tres decimales y los precios dos. `CORS_ORIGINS` define los orígenes exactos permitidos, inicialmente `http://localhost:4200` y `http://localhost:5173`. El registro HTTP conserva método, ruta, estado y duración, sin cuerpos ni tokens.
 
-## Verificación
+`MysqlUsuarioRepository` mantiene el contrato original de perfiles. La creación de un perfil mediante ese contrato genera una credencial aleatoria no recuperable; las cuentas con contraseña elegida se crean mediante registro o seed.
+
+## Pruebas
 
 ```powershell
 npm run build
@@ -95,15 +136,12 @@ npm run test:mysql
 npm run test:e2e -- --runInBand
 ```
 
-`test:mysql` requiere permisos para crear y eliminar una base temporal `distribuidora_test_<timestamp>`; nunca usa la base de trabajo para sus operaciones. Aplica las dos migraciones, prueba API real, reglas, rollback, permisos 401/403/200, tokens, concurrencia, Swagger y CORS. Elimina únicamente su base temporal al terminar. Guarda evidencia en `output/pruebas-avance2.json` desde la raíz del repositorio. La prueba HTTP básica usa un módulo aislado sin MySQL; la integración completa con MySQL y los permisos es test:mysql. El escenario de rollback requiere MySQL configurado.
+Las pruebas de integración requieren permiso para crear y eliminar una base temporal `distribuidora_test_<timestamp>`. Esa base está separada de la base de trabajo y se elimina al finalizar. Las comprobaciones incluyen migraciones, autenticación, permisos, FEFO, mermas, rollback, concurrencia, Swagger y CORS. La evidencia se encuentra en `output/pruebas-avance2.json`.
 
-Swagger 11 se usa por compatibilidad con NestJS 11. La resolución de js-yaml se fija a una versión corregida mediante overrides; conservar package-lock.json y usar npm ci.
+La prueba HTTP básica utiliza un módulo aislado. Los escenarios originales ejecutan el dominio en memoria. Swagger 11 mantiene la compatibilidad con NestJS 11; el override de `js-yaml` resuelve la dependencia con la versión corregida.
 
-## Entregables
+## Alcance del avance
 
-- `output/pdf/avance-02-servicio-seguridad.pdf`: modelo de datos, endpoints y roles.
-- `docs/guion-video-avance2.md`: recorrido de 5 a 10 minutos.
-- `output/pruebas-avance2.json`: evidencia automatizada sin credenciales.
-- `.env.example`, seed y migraciones dentro de distribuidora-app.
+Las líneas del pedido se reciben al surtir y los movimientos conservan los lotes utilizados. El proveedor permanece como texto del lote. Los estados de reparto están definidos en el modelo, pero sus operaciones todavía no forman parte de esta entrega.
 
-El video debe grabarse y adjuntarse a la entrega; el repositorio incluye el guion, no una grabación.
+El documento del avance se encuentra en [Avance 02 - Servicio y seguridad](output/pdf/avance-02-servicio-seguridad.pdf).
