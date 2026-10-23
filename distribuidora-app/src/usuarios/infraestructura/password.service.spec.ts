@@ -10,13 +10,9 @@ describe('PasswordService', () => {
 
     expect(hash).not.toBe(password);
 
-    expect(
-      await servicio.verificar(hash, password),
-    ).toBe(true);
+    expect(await servicio.verificar(hash, password)).toBe(true);
 
-    expect(
-      await servicio.verificar(hash, 'OtraClave'),
-    ).toBe(false);
+    expect(await servicio.verificar(hash, 'OtraClave')).toBe(false);
   });
 
   it('genera hashes diferentes para la misma contraseña', async () => {
@@ -27,12 +23,8 @@ describe('PasswordService', () => {
 
     expect(primero).not.toBe(segundo);
 
-    expect(
-      await servicio.verificar(primero, password),
-    ).toBe(true);
+    expect(await servicio.verificar(primero, password)).toBe(true);
 
-    expect(
-      await servicio.verificar(segundo, password),
-    ).toBe(true);
+    expect(await servicio.verificar(segundo, password)).toBe(true);
   });
 });

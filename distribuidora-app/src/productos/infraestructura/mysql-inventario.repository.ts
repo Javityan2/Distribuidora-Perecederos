@@ -52,7 +52,7 @@ export class MysqlInventarioRepository implements InventarioRepository {
 
     return registro ? this.convertirProducto(registro) : null;
   }
-  
+
   private convertirLote(registro: LoteOrmEntity): Lote {
     return {
       id: registro.id,
@@ -63,55 +63,53 @@ export class MysqlInventarioRepository implements InventarioRepository {
       fechaCaducidad: registro.fechaCaducidad,
     };
   }
-  
+
   async listarLotesProducto(productoId: number): Promise<Lote[]> {
-    const registros = await this.manager
-      .getRepository(LoteOrmEntity)
-      .find({
-        where: { productoId },
-        order: { fechaCaducidad: 'ASC', id: 'ASC' },
-      });
-  
+    const registros = await this.manager.getRepository(LoteOrmEntity).find({
+      where: { productoId },
+      order: { fechaCaducidad: 'ASC', id: 'ASC' },
+    });
+
     return registros.map((registro) => this.convertirLote(registro));
   }
-  
+
   async buscarLote(loteId: number): Promise<Lote | null> {
     const registro = await this.manager
       .getRepository(LoteOrmEntity)
       .findOneBy({ id: loteId });
-  
+
     return registro ? this.convertirLote(registro) : null;
   }
-  
+
   async crearLote(datos: NuevoLote): Promise<Lote> {
     const repositorio = this.manager.getRepository(LoteOrmEntity);
-  
+
     const registro = repositorio.create({
       ...datos,
       cantidadDisponible: String(datos.cantidadDisponible),
     });
-  
+
     const guardado = await repositorio.save(registro);
-  
+
     return this.convertirLote(guardado);
   }
-  
+
   async actualizarLote(lote: Lote): Promise<Lote> {
     const repositorio = this.manager.getRepository(LoteOrmEntity);
-  
+
     const registro = await repositorio.findOneBy({ id: lote.id });
-  
+
     if (!registro) {
       throw new LoteNoEncontradoError(lote.id);
     }
-  
+
     repositorio.merge(registro, {
       ...lote,
       cantidadDisponible: String(lote.cantidadDisponible),
     });
-  
+
     const guardado = await repositorio.save(registro);
-  
+
     return this.convertirLote(guardado);
   }
 
@@ -123,57 +121,55 @@ export class MysqlInventarioRepository implements InventarioRepository {
       estado: registro.estado,
     };
   }
-  
+
   async crearPedido(datos: NuevoPedido): Promise<Pedido> {
     const repositorio = this.manager.getRepository(PedidoOrmEntity);
-  
+
     const registro = repositorio.create({
       clienteId: datos.clienteId,
       fecha: new Date(),
       estado: 'recibido',
     });
-  
+
     const guardado = await repositorio.save(registro);
-  
+
     return this.convertirPedido(guardado);
   }
-  
+
   async buscarPedido(pedidoId: number): Promise<Pedido | null> {
     const registro = await this.manager
       .getRepository(PedidoOrmEntity)
       .findOneBy({ id: pedidoId });
-  
+
     return registro ? this.convertirPedido(registro) : null;
   }
-  
+
   async actualizarPedido(pedido: Pedido): Promise<Pedido> {
     const repositorio = this.manager.getRepository(PedidoOrmEntity);
-  
+
     const registro = await repositorio.findOneBy({ id: pedido.id });
-  
+
     if (!registro) {
       throw new PedidoNoEncontradoError(pedido.id);
     }
-  
+
     repositorio.merge(registro, pedido);
-  
+
     const guardado = await repositorio.save(registro);
-  
+
     return this.convertirPedido(guardado);
   }
 
-  async registrarMerma(
-    datos: Omit<Merma, 'id'>,
-  ): Promise<Merma> {
+  async registrarMerma(datos: Omit<Merma, 'id'>): Promise<Merma> {
     const repositorio = this.manager.getRepository(MermaOrmEntity);
-  
+
     const registro = repositorio.create({
       ...datos,
       cantidad: String(datos.cantidad),
     });
-  
+
     const guardado = await repositorio.save(registro);
-  
+
     return {
       id: guardado.id,
       loteId: guardado.loteId,
@@ -182,23 +178,19 @@ export class MysqlInventarioRepository implements InventarioRepository {
       fecha: guardado.fecha,
     };
   }
-  
-  async registrarSurtido(
-    movimiento: MovimientoSurtido,
-  ): Promise<void> {
-    const movimientos = this.manager.getRepository(
-      MovimientoSurtidoOrmEntity,
-    );
-  
+
+  async registrarSurtido(movimiento: MovimientoSurtido): Promise<void> {
+    const movimientos = this.manager.getRepository(MovimientoSurtidoOrmEntity);
+
     const registro = movimientos.create({
       pedidoId: movimiento.pedidoId,
       productoId: movimiento.productoId,
     });
-  
+
     const guardado = await movimientos.save(registro);
-  
+
     const detalles = this.manager.getRepository(SurtidoLoteOrmEntity);
-  
+
     const registros = movimiento.lotes.map((lote) =>
       detalles.create({
         movimientoId: guardado.id,
@@ -206,21 +198,16 @@ export class MysqlInventarioRepository implements InventarioRepository {
         cantidad: String(lote.cantidad),
       }),
     );
-  
+
     await detalles.save(registros);
   }
-  async enTransaccion<T>(
-    operacion: () => Promise<T>,
-  ): Promise<T> {
+  async enTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
     if (this.contexto.getStore()) {
       return operacion();
     }
-  
-    return this.dataSource.transaction(
-      'SERIALIZABLE',
-      async (manager) => {
-        return this.contexto.run(manager, operacion);
-      },
-    );
+
+    return this.dataSource.transaction('SERIALIZABLE', async (manager) => {
+      return this.contexto.run(manager, operacion);
+    });
   }
 }

@@ -17,9 +17,7 @@ export class RegistroUsuarioService {
   async registrar(
     datos: NuevoUsuario & { password: string },
   ): Promise<Usuario> {
-    const passwordHash = await this.passwords.transformar(
-      datos.password,
-    );
+    const passwordHash = await this.passwords.transformar(datos.password);
 
     const registro = this.usuarios.create({
       nombre: datos.nombre,
@@ -29,21 +27,19 @@ export class RegistroUsuarioService {
       activo: true,
     });
 
-    const guardado = await this.usuarios.save(registro).catch(
-        (error: unknown) => {
-          if (error instanceof QueryFailedError) {
-            const detalle = error.driverError as { code?: string };
-      
-            if (detalle.code === 'ER_DUP_ENTRY') {
-              throw new ConflictException(
-                'Ya existe un usuario con ese correo',
-              );
-            }
+    const guardado = await this.usuarios
+      .save(registro)
+      .catch((error: unknown) => {
+        if (error instanceof QueryFailedError) {
+          const detalle = error.driverError as { code?: string };
+
+          if (detalle.code === 'ER_DUP_ENTRY') {
+            throw new ConflictException('Ya existe un usuario con ese correo');
           }
-      
-          throw error;
-        },
-      );
+        }
+
+        throw error;
+      });
 
     return {
       id: guardado.id,

@@ -9,10 +9,7 @@ export class PasswordService {
     });
   }
 
-  verificar(
-    hashGuardado: string,
-    passwordIngresado: string,
-  ): Promise<boolean> {
+  verificar(hashGuardado: string, passwordIngresado: string): Promise<boolean> {
     return argon2.verify(hashGuardado, passwordIngresado);
   }
 }

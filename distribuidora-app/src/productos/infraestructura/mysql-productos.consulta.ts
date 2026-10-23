@@ -27,11 +27,11 @@ export class MysqlProductosConsulta {
   }
   async buscarPorId(id: number): Promise<Producto | null> {
     const registro = await this.productos.findOneBy({ id });
-  
+
     if (!registro) {
       return null;
     }
-  
+
     return {
       id: registro.id,
       nombre: registro.nombre,

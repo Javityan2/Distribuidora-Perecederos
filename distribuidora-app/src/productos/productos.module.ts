@@ -1,3 +1,5 @@
+import { UsuariosModule } from '../usuarios/usuarios.module';
+import { InventarioController } from './inventario.controller';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductoOrmEntity } from './infraestructura/producto.orm-entity';
@@ -12,25 +14,27 @@ import { MysqlInventarioRepository } from './infraestructura/mysql-inventario.re
 import { InventarioService } from './dominio/inventario.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([
-    ProductoOrmEntity,
-    LoteOrmEntity,
-    PedidoOrmEntity,
-    MermaOrmEntity,
-    MovimientoSurtidoOrmEntity,
-    SurtidoLoteOrmEntity,
-  ]),
-],
+  imports: [
+    UsuariosModule,
+    TypeOrmModule.forFeature([
+      ProductoOrmEntity,
+      LoteOrmEntity,
+      PedidoOrmEntity,
+      MermaOrmEntity,
+      MovimientoSurtidoOrmEntity,
+      SurtidoLoteOrmEntity,
+    ]),
+  ],
   providers: [
     MysqlProductosConsulta,
     MysqlInventarioRepository,
     {
-        provide: InventarioService,
-        inject: [MysqlInventarioRepository],
-        useFactory: (repositorio: MysqlInventarioRepository) =>
-          new InventarioService(repositorio),
-      },
+      provide: InventarioService,
+      inject: [MysqlInventarioRepository],
+      useFactory: (repositorio: MysqlInventarioRepository) =>
+        new InventarioService(repositorio),
+    },
   ],
-  controllers: [ProductosController],
+  controllers: [ProductosController, InventarioController],
 })
 export class ProductosModule {}

@@ -16,6 +16,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'mysql',
+        timezone: 'Z',
         host: config.getOrThrow<string>('DB_HOST'),
         port: Number(config.getOrThrow<string>('DB_PORT')),
         username: config.getOrThrow<string>('DB_USERNAME'),

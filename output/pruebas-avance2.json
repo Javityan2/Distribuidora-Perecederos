@@ -1,0 +1,46 @@
+{
+  "fecha": "2026-10-23T01:19:31.416Z",
+  "base": "temporal aislada, eliminada al terminar",
+  "resultados": [
+    {
+      "caso": "Dos migraciones desde cero; segunda ejecución sin cambios",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Registro 201 sin hash, duplicado 409, validación y escalamiento rechazados 400",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Login, firma alterada, token vencido y usuario inactivo",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Acceso a administración: 401 sin credencial, 403 rol incorrecto, 200 administrador",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Surtido FEFO, exclusión de caducados y rechazo de doble surtido",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Insuficiencia, stock mínimo y rollback de un surtido con varios productos",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Merma válida y rechazo de cero y exceso de saldo",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Surtidos concurrentes: una sola salida confirmada",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Contrato de usuarios y rollback del repositorio MySQL",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Swagger generado desde código y CORS limitado a orígenes configurados",
+      "resultado": "OK"
+    }
+  ]
+}

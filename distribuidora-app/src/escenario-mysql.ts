@@ -22,9 +22,7 @@ async function ejecutar() {
     try {
       await repositorio.enTransaccion(async () => {
         const ingreso = new Date();
-        const caducidad = new Date(
-          ingreso.getTime() + 7 * 24 * 60 * 60 * 1000,
-        );
+        const caducidad = new Date(ingreso.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         const lote = await servicio.registrarLote({
           productoId: producto.id,

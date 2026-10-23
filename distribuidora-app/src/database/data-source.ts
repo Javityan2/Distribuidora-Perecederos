@@ -13,6 +13,7 @@ function variable(nombre: string): string {
 
 export default new DataSource({
   type: 'mysql',
+  timezone: 'Z',
   host: variable('DB_HOST'),
   port: Number(variable('DB_PORT')),
   username: variable('DB_USERNAME'),
