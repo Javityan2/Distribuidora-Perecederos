@@ -120,4 +120,4 @@ npm test -- --runInBand ejecuta los escenarios y pruebas de límites del stock m
 
 Correcciones atendidas
 
-Glosario ampliado; reglas restrictivas documentadas; ambos diagramas incorporados en este PDF; servicio de inventario implementado; repositorios en memoria operables; tres escenarios con aserciones; tipo NuevoLote corregido. No se implementa todavía la nueva entrega sin conocer sus requisitos.
+Glosario ampliado; reglas restrictivas documentadas; ambos diagramas incorporados en este PDF; servicio de inventario implementado; repositorios en memoria operables; tres escenarios con aserciones; tipo NuevoLote corregido.

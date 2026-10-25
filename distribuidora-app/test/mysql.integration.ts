@@ -1,4 +1,11 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-require-imports -- Prueba HTTP de caja negra: las respuestas se verifican con aserciones; AppModule se carga después de elegir la base temporal. */
+import type { OpenAPIObject } from '@nestjs/swagger';
+import type { Usuario } from '../src/usuarios/dominio/entidades';
+import type {
+  Producto,
+  Pedido,
+  Lote,
+  MovimientoSurtido,
+} from '../src/productos/dominio/entidades';
 import 'dotenv/config';
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
@@ -10,7 +17,7 @@ import { JwtService } from '@nestjs/jwt';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { CrearInventario1792703804844 } from '../src/database/migrations/1792703804844-CrearInventario';
 import { AgregarPasswordHash1792709127226 } from '../src/database/migrations/1792709127226-AgregarPasswordHash';
-import { configurarApi } from '../src/common/api.setup';
+import { configurarApi } from '../src/comun/configurar-api';
 import { PasswordService } from '../src/usuarios/infraestructura/password.service';
 import { UsuarioOrmEntity } from '../src/usuarios/infraestructura/usuario.orm-entity';
 import { LoteOrmEntity } from '../src/productos/infraestructura/lote.orm-entity';
@@ -58,8 +65,9 @@ async function ejecutar() {
     assert.equal((await migrador.runMigrations()).length, 0);
     ok('Dos migraciones desde cero; segunda ejecución sin cambios');
     process.env.DB_DATABASE = nombre;
-    // Cargar AppModule después de seleccionar la base aislada.
+    // La configuración del módulo utiliza la base temporal seleccionada.
     const { AppModule } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- Carga posterior a la selección de la base temporal.
       require('../src/app.module') as typeof import('../src/app.module');
     app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
     configurarApi(app);
@@ -87,7 +95,7 @@ async function ejecutar() {
         passwordHash: hash,
       }),
     );
-    async function llamada(
+    async function llamada<T = unknown>(
       path: string,
       method = 'GET',
       body?: unknown,
@@ -101,9 +109,15 @@ async function ejecutar() {
         },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
-      return { status: r.status, body: (await r.json()) as any };
+      const cuerpo: unknown = await r.json();
+      assert.ok(cuerpo && typeof cuerpo === 'object' && 'data' in cuerpo);
+      return {
+        status: r.status,
+        body: cuerpo as { data: T; meta: { requestId: string; ruta?: string } },
+        headers: r.headers,
+      };
     }
-    const reg = await llamada('/auth/registro', 'POST', {
+    const reg = await llamada<Usuario>('/auth/registro', 'POST', {
       nombre: 'Restaurante prueba',
       correo: 'cliente@test.local',
       password,
@@ -147,9 +161,12 @@ async function ejecutar() {
       'Registro 201 sin hash, duplicado 409, validación y escalamiento rechazados 400',
     );
     async function login(correo: string) {
-      const r = await llamada('/auth/login', 'POST', { correo, password });
+      const r = await llamada<{ accessToken: string }>('/auth/login', 'POST', {
+        correo,
+        password,
+      });
       assert.equal(r.status, 200);
-      return r.body.data.accessToken as string;
+      return r.body.data.accessToken;
     }
     const ta = await login(admin.correo);
     const tc = await login(cliente.correo);
@@ -213,7 +230,29 @@ async function ejecutar() {
     ok(
       'Acceso a administración: 401 sin credencial, 403 rol incorrecto, 200 administrador',
     );
-    const prod = await llamada(
+    const denegada = await llamada('/usuarios', 'GET', undefined, tc);
+    assert.equal(
+      denegada.body.meta.requestId,
+      denegada.headers.get('x-request-id'),
+    );
+    const perfilActual = await llamada<Usuario>(
+      '/auth/perfil',
+      'GET',
+      undefined,
+      tc,
+    );
+    assert.equal(
+      perfilActual.body.meta.requestId,
+      perfilActual.headers.get('x-request-id'),
+    );
+    assert.equal(perfilActual.body.data.id, cliente.id);
+    await usuarios.update(admin.id, { rol: 'cliente' });
+    assert.equal(
+      (await llamada('/usuarios', 'GET', undefined, ta)).status,
+      403,
+    );
+    await usuarios.update(admin.id, { rol: 'administrador' });
+    const prod = await llamada<Producto>(
       '/productos',
       'POST',
       {
@@ -227,7 +266,8 @@ async function ejecutar() {
     );
     assert.equal(prod.status, 201);
     const producto = prod.body.data;
-    const pollo = await llamada(
+    assert.equal(prod.headers.get('location'), `/productos/${producto.id}`);
+    const pollo = await llamada<Producto>(
       '/productos',
       'POST',
       {
@@ -240,7 +280,8 @@ async function ejecutar() {
       ta,
     );
     assert.equal(pollo.status, 201);
-    assert.equal((await llamada('/productos/abc')).status, 400);
+    for (const id of ['abc', '0', '-1', '1.5', '4294967296'])
+      assert.equal((await llamada('/productos/' + id)).status, 400);
     assert.equal((await llamada('/productos/999999')).status, 404);
     const ingreso = new Date(Date.now() - 86400000).toISOString();
     const fecha = (dias: number) =>
@@ -256,9 +297,19 @@ async function ejecutar() {
       (await llamada('/lotes', 'POST', nuevoLote('Prohibido', 10), tc)).status,
       403,
     );
-    const largo = await llamada('/lotes', 'POST', nuevoLote('Tardío', 20), tl);
+    const largo = await llamada<Lote>(
+      '/lotes',
+      'POST',
+      nuevoLote('Tardío', 20),
+      tl,
+    );
     assert.equal(largo.status, 201);
-    const corto = await llamada('/lotes', 'POST', nuevoLote('Próximo', 10), tl);
+    const corto = await llamada<Lote>(
+      '/lotes',
+      'POST',
+      nuevoLote('Próximo', 10),
+      tl,
+    );
     assert.equal(corto.status, 201);
     const lotes = db.getRepository(LoteOrmEntity);
     const caducado = await lotes.save(
@@ -297,22 +348,45 @@ async function ejecutar() {
       409,
     );
     async function pedido() {
-      const r = await llamada(
+      const r = await llamada<Pedido>(
         '/pedidos',
         'POST',
         { clienteId: cliente.id },
         tc,
       );
       assert.equal(r.status, 201);
-      return r.body.data.id as number;
+      assert.equal(r.headers.get('location'), `/pedidos/${r.body.data.id}`);
+      return r.body.data.id;
     }
     assert.equal(
       (await llamada('/pedidos', 'POST', { clienteId: admin.id }, tc)).status,
       403,
     );
+    const ajeno = await usuarios.save(
+      usuarios.create({
+        nombre: 'Otro restaurante',
+        correo: 'otro@test.local',
+        rol: 'cliente',
+        activo: true,
+        passwordHash: hash,
+      }),
+    );
+    const pedidoAjeno = await db
+      .getRepository(PedidoOrmEntity)
+      .save({ clienteId: ajeno.id, estado: 'recibido', fecha: new Date() });
+    assert.equal(
+      (await llamada(`/pedidos/${pedidoAjeno.id}`, 'GET', undefined, tc))
+        .status,
+      403,
+    );
+    const propios = await llamada<Pedido[]>('/pedidos', 'GET', undefined, tc);
+    assert.ok(propios.body.data.every((p) => p.clienteId === cliente.id));
+    ok(
+      'Metadatos, identificadores válidos, permisos actuales y propiedad de pedidos',
+    );
     const p = await pedido();
     const surtir = (id: number, cantidad: number) =>
-      llamada(
+      llamada<MovimientoSurtido[]>(
         `/pedidos/${id}/surtidos`,
         'POST',
         { lineas: [{ productoId: producto.id, cantidad }] },
@@ -434,9 +508,12 @@ async function ejecutar() {
     ok('Contrato de usuarios y rollback del repositorio MySQL');
     const doc = await fetch(url + '/docs-json');
     assert.equal(doc.status, 200);
-    const spec = (await doc.json()) as any;
+    const spec = (await doc.json()) as OpenAPIObject;
     assert.ok(spec.paths['/pedidos/{id}/surtidos']);
-    assert.ok(spec.components.schemas.RegistroUsuarioDto.properties.password);
+    const esquema = spec.components?.schemas?.RegistroUsuarioDto;
+    assert.ok(
+      esquema && 'properties' in esquema && esquema.properties?.password,
+    );
     const permitido = await fetch(url + '/productos', {
       headers: { Origin: 'http://localhost:4200' },
     });
@@ -444,10 +521,10 @@ async function ejecutar() {
       permitido.headers.get('access-control-allow-origin'),
       'http://localhost:4200',
     );
-    const ajeno = await fetch(url + '/productos', {
+    const origenAjeno = await fetch(url + '/productos', {
       headers: { Origin: 'https://ajeno.example' },
     });
-    assert.equal(ajeno.headers.get('access-control-allow-origin'), null);
+    assert.equal(origenAjeno.headers.get('access-control-allow-origin'), null);
     ok('Swagger generado desde código y CORS limitado a orígenes configurados');
     mkdirSync('../output', { recursive: true });
     writeFileSync(

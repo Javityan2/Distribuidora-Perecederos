@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-10-23T01:19:31.416Z",
+  "fecha": "2026-10-25T09:54:57.285Z",
   "base": "temporal aislada, eliminada al terminar",
   "resultados": [
     {
@@ -16,6 +16,10 @@
     },
     {
       "caso": "Acceso a administración: 401 sin credencial, 403 rol incorrecto, 200 administrador",
+      "resultado": "OK"
+    },
+    {
+      "caso": "Metadatos, identificadores válidos, permisos actuales y propiedad de pedidos",
       "resultado": "OK"
     },
     {

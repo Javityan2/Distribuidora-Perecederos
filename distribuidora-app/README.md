@@ -1,30 +1,44 @@
-# Servicio de la distribuidora de perecederos
+# Servicio de la distribuidora
 
-Implementé el backend con NestJS y MySQL. El servicio administra productos, lotes, pedidos, surtidos y mermas, con autenticación JWT y permisos de administrador, almacenista y cliente.
+## Objetivo
 
-## Componentes
+Implementar el servicio central de una distribuidora de carnes a restaurantes, con inventario por lotes, surtido FEFO, registro de mermas y control de acceso.
 
-- `productos/dominio`: entidades, contratos, errores y reglas de inventario.
-- `productos/infraestructura`: repositorios en memoria y MySQL y entidades ORM.
-- `usuarios`: registro, login, transformación de contraseñas y control de acceso.
-- `database`: configuración de persistencia, migraciones y datos iniciales.
-- `common`: validación HTTP, documentación y formato de errores.
+## Organización
+
+- `src/productos/dominio`: entidades, errores, contratos y reglas del inventario.
+- `src/productos/infraestructura`: entidades ORM y repositorios en memoria y MySQL.
+- `src/productos/*.service.ts`: servicios de aplicación para catálogo y pedidos.
+- `src/productos/*.controller.ts`: rutas agrupadas por recurso.
+- `src/usuarios`: autenticación, permisos y persistencia de perfiles y credenciales.
+- `src/comun`: middleware de peticiones, interceptor del sobre, filtro HTTP y pipe de identificadores.
+- `src/database`: conexión, migraciones y datos iniciales.
+- `test`: comprobaciones HTTP y de integración con MySQL temporal.
+- `peticiones.http`: casos reproducibles para REST Client.
+
+Los servicios utilizan contratos de repositorio mediante tokens. Los controladores no dependen de TypeORM. Las reglas del inventario permanecen independientes de NestJS y el almacenamiento se selecciona en los módulos.
 
 ## Comandos
 
 | Comando | Función |
 |---|---|
 | `npm ci` | Instalación reproducible de dependencias |
+| `npm run typecheck` | Revisión de tipos sin generar archivos |
 | `npm run migration:run` | Aplicación de migraciones pendientes |
-| `npm run migration:show` | Consulta del historial de migraciones |
-| `npm run seed` | Creación de datos iniciales faltantes |
+| `npm run migration:show` | Estado del historial |
+| `npm run seed` | Datos iniciales faltantes |
 | `npm run start:dev` | Servidor de desarrollo |
 | `npm run build` | Compilación |
+| `npm run lint` | Revisión de estilo y análisis estático |
 | `npm test -- --runInBand` | Pruebas unitarias |
 | `npm run escenarios` | Escenarios del dominio en memoria |
-| `npm run test:mysql` | Integración HTTP con MySQL temporal |
-| `npm run test:e2e -- --runInBand` | Prueba HTTP básica aislada |
+| `npm run test:mysql` | API real con una base MySQL temporal |
+| `npm run test:e2e -- --runInBand` | Prueba HTTP aislada |
 
-La configuración se define mediante las variables de `.env.example`; los valores reales permanecen en `.env`. La API está disponible en el puerto 3000 por defecto y la documentación interactiva en `/docs`.
+## Configuración y documentación
 
-La descripción del modelo, los permisos y la preparación completa del entorno se encuentran en el [README del proyecto](../README.md).
+`.env.example` describe las variables de conexión, JWT, CORS y cuentas iniciales. Sus valores reales se conservan únicamente en `.env`. Las fechas utilizan UTC y las cantidades admiten hasta tres decimales.
+
+La API utiliza el puerto 3000 por defecto. La documentación navegable está en `/docs` y su contrato OpenAPI en `/docs-json`. Las respuestas contienen `data` y `meta`, y cada petición tiene un identificador `X-Request-Id`.
+
+La preparación completa del entorno, los permisos y el modelo del proyecto se describen en el [README principal](../README.md).

@@ -26,8 +26,18 @@ export class InventarioService {
   ) {}
 
   private cantidad(valor: number) {
-    if (!Number.isFinite(valor) || valor <= 0)
+    if (
+      !Number.isFinite(valor) ||
+      valor <= 0 ||
+      valor > 999999999.999 ||
+      Math.abs(valor - Math.round(valor * 1000) / 1000) >
+        Number.EPSILON * Math.max(1, Math.abs(valor)) * 2
+    )
       throw new CantidadInvalidaError(valor);
+  }
+
+  private milesimas(valor: number): number {
+    return Math.round(valor * 1000);
   }
 
   crearPedido(datos: NuevoPedido) {
@@ -46,7 +56,7 @@ export class InventarioService {
       )
         throw new FechaInvalidaError();
       if (datos.fechaCaducidad <= this.ahora())
-        throw new ProductoCaducadoError(datos.productoId, 0);
+        throw new ProductoCaducadoError(datos.productoId);
       return this.repo.crearLote(datos);
     });
   }
@@ -64,8 +74,9 @@ export class InventarioService {
       const totales = new Map<number, number>();
       for (const linea of lineas) {
         this.cantidad(linea.cantidad);
-        const total = (totales.get(linea.productoId) ?? 0) + linea.cantidad;
-        this.cantidad(total);
+        const total =
+          (totales.get(linea.productoId) ?? 0) + this.milesimas(linea.cantidad);
+        this.cantidad(total / 1000);
         totales.set(linea.productoId, total);
       }
       const fecha = this.ahora();
@@ -86,16 +97,16 @@ export class InventarioService {
               a.id - b.id,
           );
         const disponible = lotes.reduce(
-          (total, l) => total + l.cantidadDisponible,
+          (total, l) => total + this.milesimas(l.cantidadDisponible),
           0,
         );
         if (cantidad > disponible)
           throw new InventarioInsuficienteError(
             productoId,
-            cantidad,
-            disponible,
+            cantidad / 1000,
+            disponible / 1000,
           );
-        if (disponible - cantidad < producto.stockMinimo)
+        if (disponible - cantidad < this.milesimas(producto.stockMinimo))
           throw new StockMinimoComprometidoError(
             productoId,
             producto.stockMinimo,
@@ -108,12 +119,16 @@ export class InventarioService {
         let restante = cantidad;
         for (const lote of lotes) {
           if (restante <= 0) break;
-          const tomada = Math.min(restante, lote.cantidadDisponible);
+          const tomada = Math.min(
+            restante,
+            this.milesimas(lote.cantidadDisponible),
+          );
           await this.repo.actualizarLote({
             ...lote,
-            cantidadDisponible: lote.cantidadDisponible - tomada,
+            cantidadDisponible:
+              (this.milesimas(lote.cantidadDisponible) - tomada) / 1000,
           });
-          movimiento.lotes.push({ loteId: lote.id, cantidad: tomada });
+          movimiento.lotes.push({ loteId: lote.id, cantidad: tomada / 1000 });
           restante -= tomada;
         }
         await this.repo.registrarSurtido(movimiento);
@@ -129,7 +144,9 @@ export class InventarioService {
       this.cantidad(datos.cantidad);
       const lote = await this.repo.buscarLote(datos.loteId);
       if (!lote) throw new LoteNoEncontradoError(datos.loteId);
-      if (datos.cantidad > lote.cantidadDisponible)
+      if (
+        this.milesimas(datos.cantidad) > this.milesimas(lote.cantidadDisponible)
+      )
         throw new InventarioInsuficienteError(
           lote.productoId,
           datos.cantidad,
@@ -137,7 +154,10 @@ export class InventarioService {
         );
       await this.repo.actualizarLote({
         ...lote,
-        cantidadDisponible: lote.cantidadDisponible - datos.cantidad,
+        cantidadDisponible:
+          (this.milesimas(lote.cantidadDisponible) -
+            this.milesimas(datos.cantidad)) /
+          1000,
       });
       return this.repo.registrarMerma({ ...datos, fecha: this.ahora() });
     });

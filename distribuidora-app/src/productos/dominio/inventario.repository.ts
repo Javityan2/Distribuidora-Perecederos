@@ -1,4 +1,4 @@
-import {
+import type {
   Producto,
   Lote,
   Pedido,
@@ -7,9 +7,7 @@ import {
   MovimientoSurtido,
 } from './entidades';
 
-// La interfaz que el Service conoce. No sabe si detras hay un Map en memoria o MySQL.
-// Todos los metodos devuelven Promise aunque hoy el Map no lo necesite:
-// el contrato se diseña para el caso mas lento.
+/** Persistencia asíncrona del inventario y sus operaciones atómicas. */
 export interface InventarioRepository {
   // Todo el caso de uso se confirma o se revierte; evita surtidos concurrentes.
   enTransaccion<T>(operacion: () => Promise<T>): Promise<T>;
@@ -32,8 +30,4 @@ export interface InventarioRepository {
 
   // Mermas
   registrarMerma(merma: Omit<Merma, 'id'>): Promise<Merma>;
-
-  /* Consultas de inventario
-  existencia(productoId: number, fecha: Date): Promise<number>;
-  */
 }

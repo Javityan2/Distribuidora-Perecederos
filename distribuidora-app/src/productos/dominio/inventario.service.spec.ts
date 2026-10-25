@@ -1,3 +1,5 @@
+import { describe, it, expect } from '@jest/globals';
+import { InMemoryInventarioRepository } from '../infraestructura/in-memory-inventario.repository';
 import { escenarios, preparar } from '../../escenarios';
 import {
   CantidadInvalidaError,
@@ -96,5 +98,63 @@ describe('Reglas de inventario', () => {
     expect(await repo.buscarPorId(usuario.id)).toBeNull();
     expect(await repo.actualizar(99, {})).toBeNull();
     expect(await repo.eliminar(99)).toBeNull();
+  });
+});
+
+describe('Precisión de cantidades', () => {
+  function decimal() {
+    const ahora = () => new Date('2026-10-25T12:00:00Z');
+    const repo = new InMemoryInventarioRepository(
+      [
+        {
+          id: 1,
+          nombre: 'Res',
+          presentacion: 'Granel',
+          unidadMedida: 'kg',
+          precioBase: 180,
+          stockMinimo: 5,
+        },
+      ],
+      [
+        {
+          id: 1,
+          productoId: 1,
+          proveedor: 'Prueba',
+          cantidadDisponible: 5.3,
+          fechaIngreso: new Date('2026-10-01'),
+          fechaCaducidad: new Date('2026-12-01'),
+        },
+      ],
+      ahora,
+    );
+    return { repo, servicio: new InventarioService(repo, ahora) };
+  }
+  it('permite llegar al mínimo al sumar 0.1 y 0.2 sin error binario', async () => {
+    const { repo, servicio } = decimal();
+    const pedido = await servicio.crearPedido({ clienteId: 1 });
+    const resultado = await servicio.surtirPedido(pedido.id, [
+      { productoId: 1, cantidad: 0.1 },
+      { productoId: 1, cantidad: 0.2 },
+    ]);
+    expect(resultado[0].lotes).toEqual([{ loteId: 1, cantidad: 0.3 }]);
+    expect((await repo.buscarLote(1))?.cantidadDisponible).toBe(5);
+  });
+  it('descuenta mermas decimales sin acumular residuos', async () => {
+    const { repo, servicio } = decimal();
+    await servicio.registrarMerma({ loteId: 1, cantidad: 0.1, motivo: 'daño' });
+    await servicio.registrarMerma({
+      loteId: 1,
+      cantidad: 0.2,
+      motivo: 'faltante',
+    });
+    expect((await repo.buscarLote(1))?.cantidadDisponible).toBe(5);
+  });
+  it('rechaza cantidades más pequeñas que la precisión almacenada', async () => {
+    const { servicio } = decimal();
+    for (const cantidad of [0.0001, 0.00000001, 1.0001, 1000000000]) {
+      await expect(
+        servicio.registrarMerma({ loteId: 1, cantidad, motivo: 'daño' }),
+      ).rejects.toBeInstanceOf(CantidadInvalidaError);
+    }
   });
 });

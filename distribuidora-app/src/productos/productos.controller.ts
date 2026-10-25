@@ -1,48 +1,45 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Param,
-  ParseIntPipe,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { DataSource } from 'typeorm';
-import { MysqlInventarioRepository } from './infraestructura/mysql-inventario.repository';
-import { ProductoOrmEntity } from './infraestructura/producto.orm-entity';
-import { ProductoDto } from './dto/inventario.dto';
-import { JwtAuthGuard } from '../usuarios/jwt-auth.guard';
-import { Roles, RolesGuard } from '../usuarios/roles.guard';
+import type { Response } from 'express';
+import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ProductosService } from './productos.service';
+import { CrearProductoDto } from './dto/crear-producto.dto';
+import { Roles } from '../usuarios/roles.guard';
+import { Publico } from '../usuarios/decoradores/publico.decorator';
+import { IdPositivoPipe } from '../comun/pipes/id-positivo.pipe';
+
 @ApiTags('Productos')
 @Controller('productos')
 export class ProductosController {
-  constructor(
-    private readonly productos: MysqlInventarioRepository,
-    private readonly db: DataSource,
-  ) {}
-  @Get() async listar() {
-    return { data: await this.productos.listarProductos() };
+  constructor(private readonly productos: ProductosService) {}
+  @Publico()
+  @Get()
+  @ApiOperation({ summary: 'Consultar el catálogo público' })
+  listar() {
+    return this.productos.listar();
   }
-  @Get(':id') async buscarPorId(@Param('id', ParseIntPipe) id: number) {
-    const producto = await this.productos.buscarProducto(id);
-    if (!producto) throw new NotFoundException('Producto no encontrado');
-    return { data: producto };
+  @Publico()
+  @Get(':id')
+  @ApiOperation({ summary: 'Buscar un producto por identificador' })
+  buscar(@Param('id', IdPositivoPipe) id: number) {
+    return this.productos.buscar(id);
   }
   @Post()
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('administrador')
-  async crear(@Body() datos: ProductoDto) {
-    const repo = this.db.getRepository(ProductoOrmEntity);
-    const guardado = await repo.save(
-      repo.create({
-        ...datos,
-        precioBase: String(datos.precioBase),
-        stockMinimo: String(datos.stockMinimo),
-      }),
-    );
-    return { data: await this.productos.buscarProducto(guardado.id) };
+  @ApiOperation({ summary: 'Registrar un producto' })
+  async crear(
+    @Body() datos: CrearProductoDto,
+    @Res({ passthrough: true }) respuesta: Response,
+  ) {
+    const producto = await this.productos.crear(datos);
+    respuesta.setHeader('Location', `/productos/${producto.id}`);
+    return producto;
+  }
+  @Get(':id/lotes')
+  @ApiBearerAuth()
+  @Roles('administrador', 'almacenista')
+  @ApiOperation({ summary: 'Consultar los lotes de un producto' })
+  listarLotes(@Param('id', IdPositivoPipe) id: number) {
+    return this.productos.listarLotes(id);
   }
 }

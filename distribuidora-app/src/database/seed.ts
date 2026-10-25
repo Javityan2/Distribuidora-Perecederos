@@ -23,7 +23,7 @@ async function seed() {
       const clave = process.env[variable];
       if (!clave || clave.length < 12 || clave.includes('REEMPLAZAR'))
         throw new Error(
-          `Configura ${variable} con una contraseña local de al menos 12 caracteres`,
+          `${variable} requiere una contraseña local de al menos 12 caracteres`,
         );
     }
     await db.transaction(async (manager) => {
@@ -97,7 +97,7 @@ async function seed() {
 }
 void seed().catch(() => {
   console.error(
-    'No se pudieron crear los datos de arranque. Comprueba conexión, migraciones y variables SEED_*.',
+    'Datos de arranque no disponibles: conexión, migraciones o variables SEED_* inválidas.',
   );
   process.exitCode = 1;
 });

@@ -1,0 +1,213 @@
+# Distribuidora de perecederos - casos HTTP
+# Credenciales locales: variables SEED_* de .env.
+# Los casos manuales crean registros en la base configurada.
+
+@host = http://localhost:3000
+
+### Catálogo público - 200 y X-Request-Id
+GET {{host}}/productos
+X-Request-Id: distribuidora-catalogo-001
+
+### Recurso inexistente - 404
+GET {{host}}/productos/4294967295
+
+### Identificador inválido - 400
+GET {{host}}/productos/0
+
+### Administración sin credencial - 401
+GET {{host}}/usuarios
+
+### Registro de un restaurante - 201, sin hash
+# @name registroCliente
+POST {{host}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Restaurante de prueba",
+  "correo": "restaurante.{{$guid}}@example.com",
+  "password": "{{$dotenv SEED_CLIENTE_PASSWORD}}"
+}
+
+### Registro duplicado - 409
+POST {{host}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "Restaurante de prueba",
+  "correo": "{{registroCliente.response.body.$.data.correo}}",
+  "password": "{{$dotenv SEED_CLIENTE_PASSWORD}}"
+}
+
+### Datos inválidos - 400
+POST {{host}}/auth/registro
+Content-Type: application/json
+
+{
+  "nombre": "A",
+  "correo": "correo-invalido",
+  "password": "123"
+}
+
+### Login del restaurante - 200
+# @name loginCliente
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "{{registroCliente.response.body.$.data.correo}}",
+  "password": "{{$dotenv SEED_CLIENTE_PASSWORD}}"
+}
+
+### Perfil autenticado - 200
+GET {{host}}/auth/perfil
+Authorization: Bearer {{loginCliente.response.body.$.data.accessToken}}
+
+### Rol incorrecto - 403
+GET {{host}}/usuarios
+Authorization: Bearer {{loginCliente.response.body.$.data.accessToken}}
+
+### Login del administrador - 200
+# @name loginAdmin
+POST {{host}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "admin@distribuidora.local",
+  "password": "{{$dotenv SEED_ADMIN_PASSWORD}}"
+}
+
+### Administración autorizada - 200
+GET {{host}}/usuarios
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+
+### Producto de prueba - 201 y Location
+# @name producto
+POST {{host}}/productos
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Res de prueba HTTP",
+  "presentacion": "A granel",
+  "unidadMedida": "kg",
+  "precioBase": 180,
+  "stockMinimo": 5
+}
+
+### Lote que vence primero - 201
+# @name lotePrimero
+POST {{host}}/lotes
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "productoId": {{producto.response.body.$.data.id}},
+  "proveedor": "Proveedor HTTP 1",
+  "cantidadDisponible": 10,
+  "fechaIngreso": "{{$datetime iso8601}}",
+  "fechaCaducidad": "{{$datetime iso8601 7 d}}"
+}
+
+### Segundo lote - 201
+POST {{host}}/lotes
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "productoId": {{producto.response.body.$.data.id}},
+  "proveedor": "Proveedor HTTP 2",
+  "cantidadDisponible": 10,
+  "fechaIngreso": "{{$datetime iso8601}}",
+  "fechaCaducidad": "{{$datetime iso8601 14 d}}"
+}
+
+### Lotes del producto - 200
+GET {{host}}/productos/{{producto.response.body.$.data.id}}/lotes
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+
+### Pedido propio - 201 y Location
+# @name pedido
+POST {{host}}/pedidos
+Authorization: Bearer {{loginCliente.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "clienteId": {{registroCliente.response.body.$.data.id}}
+}
+
+### Surtido FEFO - 201, toma 10 + 2 y conserva 8
+POST {{host}}/pedidos/{{pedido.response.body.$.data.id}}/surtidos
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "lineas": [
+    { "productoId": {{producto.response.body.$.data.id}}, "cantidad": 12 }
+  ]
+}
+
+### Surtido duplicado - 409
+POST {{host}}/pedidos/{{pedido.response.body.$.data.id}}/surtidos
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "lineas": [
+    { "productoId": {{producto.response.body.$.data.id}}, "cantidad": 1 }
+  ]
+}
+
+### Segundo pedido para conflictos de inventario - 201
+# @name pedidoConflicto
+POST {{host}}/pedidos
+Authorization: Bearer {{loginCliente.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "clienteId": {{registroCliente.response.body.$.data.id}}
+}
+
+### Stock mínimo comprometido - 409
+POST {{host}}/pedidos/{{pedidoConflicto.response.body.$.data.id}}/surtidos
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "lineas": [
+    { "productoId": {{producto.response.body.$.data.id}}, "cantidad": 4 }
+  ]
+}
+
+### Inventario insuficiente - 409
+POST {{host}}/pedidos/{{pedidoConflicto.response.body.$.data.id}}/surtidos
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "lineas": [
+    { "productoId": {{producto.response.body.$.data.id}}, "cantidad": 100 }
+  ]
+}
+
+### Merma cero - 409
+POST {{host}}/mermas
+Authorization: Bearer {{loginAdmin.response.body.$.data.accessToken}}
+Content-Type: application/json
+
+{
+  "loteId": {{lotePrimero.response.body.$.data.id}},
+  "cantidad": 0,
+  "motivo": "daño"
+}
+
+### Pedidos propios - 200
+GET {{host}}/pedidos
+Authorization: Bearer {{loginCliente.response.body.$.data.accessToken}}
+
+### Origen permitido según configuración local
+GET {{host}}/productos
+Origin: http://localhost:5173
+
+### Origen no permitido - sin Access-Control-Allow-Origin
+GET {{host}}/productos
+Origin: https://ajeno.example

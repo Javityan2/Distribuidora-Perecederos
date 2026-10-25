@@ -1,8 +1,8 @@
 {
   "name": "distribuidora-app",
   "version": "0.0.1",
-  "description": "",
-  "author": "",
+  "description": "Servicio de inventario y distribuci\u00f3n de carnes por lotes",
+  "author": "Francisco Javier Sanchez Lopez",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -13,7 +13,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint src test",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -22,14 +22,15 @@
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
     "seed": "ts-node src/database/seed.ts",
-    "test:mysql": "ts-node test/mysql.integration.ts"
+    "test:mysql": "ts-node test/mysql.integration.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^12.0.3",
-    "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-express": "^11.2.7",
     "@nestjs/swagger": "^11.4.7",
     "@nestjs/typeorm": "^12.0.2",
     "argon2": "^0.45.1",
@@ -86,6 +87,9 @@
   "overrides": {
     "@nestjs/swagger": {
       "js-yaml": "^5.5.0"
+    },
+    "@nestjs/platform-express": {
+      "multer": "^2.5.0"
     }
   }
 }

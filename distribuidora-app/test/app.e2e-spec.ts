@@ -1,3 +1,4 @@
+import { configurarApi } from '../src/comun/configurar-api';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
@@ -15,6 +16,7 @@ describe('AppController HTTP aislado (integración MySQL en test:mysql)', () => 
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    configurarApi(app);
     await app.init();
   });
 
@@ -22,7 +24,15 @@ describe('AppController HTTP aislado (integración MySQL en test:mysql)', () => 
     return request(app.getHttpServer())
       .get('/')
       .expect(200)
-      .expect({ data: 'Hello World!' });
+      .expect((res) => {
+        expect((res.body as { data: unknown }).data).toEqual({
+          servicio: 'Distribuidora de perecederos',
+          estado: 'disponible',
+        });
+        expect(
+          (res.body as { meta: { requestId: string } }).meta.requestId,
+        ).toBeDefined();
+      });
   });
 
   afterEach(async () => {

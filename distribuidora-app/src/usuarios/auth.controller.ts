@@ -1,13 +1,12 @@
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RegistroUsuarioService } from './aplicacion/registro-usuario.service';
-import { RegistroUsuarioDto } from './dto/registro-usuario.dto';
-import { HttpCode } from '@nestjs/common';
 import { LoginService } from './aplicacion/login.service';
+import { RegistroUsuarioDto } from './dto/registro-usuario.dto';
 import { LoginDto } from './dto/login.dto';
-import { Get, Req, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import type { RequestAutenticada } from './jwt-auth.guard';
+import { Publico } from './decoradores/publico.decorator';
+import { UsuarioActual } from './decoradores/usuario-actual.decorator';
+import type { Usuario } from './dominio/entidades';
 
 @ApiTags('Autenticación')
 @Controller('auth')
@@ -16,25 +15,25 @@ export class AuthController {
     private readonly registro: RegistroUsuarioService,
     private readonly login: LoginService,
   ) {}
-
+  @Publico()
   @Post('registro')
-  async registrar(@Body() datos: RegistroUsuarioDto) {
-    const usuario = await this.registro.registrar(datos);
-
-    return { data: usuario };
+  @ApiOperation({ summary: 'Registrar un cliente' })
+  registrar(@Body() datos: RegistroUsuarioDto) {
+    return this.registro.registrar(datos);
   }
-
+  @Publico()
   @Post('login')
   @HttpCode(200)
-  async iniciarSesion(@Body() datos: LoginDto) {
-    const resultado = await this.login.iniciarSesion(datos);
-
-    return { data: resultado };
+  @ApiOperation({
+    summary: 'Iniciar sesión y emitir una credencial de 15 minutos',
+  })
+  iniciarSesion(@Body() datos: LoginDto) {
+    return this.login.iniciarSesion(datos);
   }
   @ApiBearerAuth()
   @Get('perfil')
-  @UseGuards(JwtAuthGuard)
-  obtenerPerfil(@Req() request: RequestAutenticada) {
-    return { data: request.usuario };
+  @ApiOperation({ summary: 'Consultar el usuario autenticado' })
+  obtenerPerfil(@UsuarioActual() usuario: Usuario) {
+    return usuario;
   }
 }

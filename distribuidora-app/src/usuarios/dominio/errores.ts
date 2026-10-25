@@ -1,14 +1,13 @@
-// Ningun error de aqui menciona un codigo HTTP. Eso lo decide el
-// Controller: el dominio solo reporta que paso.
+import { ErrorDeDominio } from '../../dominio/error-de-dominio';
 
-export class UsuarioNoEncontradoError extends Error {
-  constructor(Id: number) {
-    super(`No existe el usuario ${Id}`);
+export class UsuarioNoEncontradoError extends ErrorDeDominio {
+  constructor(id: number) {
+    super(`No existe el usuario ${id}`);
   }
 }
 
-export class UsuarioInactivoError extends Error {
-  constructor(Id: number) {
-    super(`El usuario ${Id} esta inactivo`);
+export class UsuarioInactivoError extends ErrorDeDominio {
+  constructor(id: number) {
+    super(`El usuario ${id} esta inactivo`);
   }
 }

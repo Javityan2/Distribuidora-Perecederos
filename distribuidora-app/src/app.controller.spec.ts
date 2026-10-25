@@ -15,8 +15,11 @@ describe('AppController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(appController.getHello()).toEqual({ data: 'Hello World!' });
+    it('devuelve la identificación del servicio', () => {
+      expect(appController.getHello()).toEqual({
+        servicio: 'Distribuidora de perecederos',
+        estado: 'disponible',
+      });
     });
   });
 });

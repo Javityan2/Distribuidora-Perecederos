@@ -1,3 +1,7 @@
+import type {
+  CredencialesRepository,
+  UsuarioConCredencial,
+} from '../dominio/credenciales.repository';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,7 +11,9 @@ import type { Usuario, NuevoUsuario } from '../dominio/entidades';
 import { UsuarioOrmEntity } from './usuario.orm-entity';
 import { PasswordService } from './password.service';
 @Injectable()
-export class MysqlUsuarioRepository implements UsuarioRepository {
+export class MysqlUsuarioRepository
+  implements UsuarioRepository, CredencialesRepository
+{
   constructor(
     @InjectRepository(UsuarioOrmEntity)
     private readonly repo: Repository<UsuarioOrmEntity>,
@@ -21,6 +27,28 @@ export class MysqlUsuarioRepository implements UsuarioRepository {
       rol: u.rol,
       activo: u.activo,
     };
+  }
+  async buscarPorCorreo(correo: string): Promise<UsuarioConCredencial | null> {
+    const registro = await this.repo
+      .createQueryBuilder('usuario')
+      .addSelect('usuario.passwordHash')
+      .where('usuario.correo = :correo', { correo })
+      .getOne();
+    return registro
+      ? { ...this.convertir(registro), passwordHash: registro.passwordHash }
+      : null;
+  }
+  async crearConCredencial(
+    datos: NuevoUsuario & { passwordHash: string },
+  ): Promise<Usuario> {
+    const registro = this.repo.create({
+      nombre: datos.nombre,
+      correo: datos.correo,
+      passwordHash: datos.passwordHash,
+      rol: 'cliente',
+      activo: true,
+    });
+    return this.convertir(await this.repo.save(registro));
   }
   async listar() {
     return (await this.repo.find({ order: { id: 'ASC' } })).map((u) =>

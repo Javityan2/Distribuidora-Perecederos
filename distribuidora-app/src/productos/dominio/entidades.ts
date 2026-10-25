@@ -51,9 +51,8 @@ export interface Merma {
   fecha: Date;
 }
 
-// Lo que hace falta para crear una: nada de id, estado ni creadaEn.
-// Eso lo decide el dominio, no quien manda la peticion.
-export type NuevoProducto = Omit<Producto, 'id' | 'unidadMedida'>;
+// Datos de creación: el almacenamiento asigna el ID y el pedido inicia recibido.
+export type NuevoProducto = Omit<Producto, 'id'>;
 export type NuevoPedido = Omit<Pedido, 'id' | 'fecha' | 'estado'>;
 export type NuevoLote = Omit<Lote, 'id'>;
 

@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { configurarApi } from './common/api.setup';
+import { configurarApi } from './comun/configurar-api';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   configurarApi(app);

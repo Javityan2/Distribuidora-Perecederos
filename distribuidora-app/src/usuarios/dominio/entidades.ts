@@ -9,6 +9,5 @@ export interface Usuario {
   activo: boolean;
 }
 
-// Lo que hace falta para crear una: nada de id, estado ni creadaEn.
-// Eso lo decide el dominio, no quien manda la peticion.
+// El registro asigna el identificador, el rol inicial y el estado activo.
 export type NuevoUsuario = Omit<Usuario, 'id' | 'rol' | 'activo'>;

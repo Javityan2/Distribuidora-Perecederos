@@ -1,3 +1,5 @@
+import type { CatalogoRepository } from '../dominio/catalogo.repository';
+import type { NuevoProducto } from '../dominio/entidades';
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import type { Producto } from '../dominio/entidades';
@@ -17,7 +19,9 @@ import type { EntityManager } from 'typeorm';
 import type { InventarioRepository } from '../dominio/inventario.repository';
 
 @Injectable()
-export class MysqlInventarioRepository implements InventarioRepository {
+export class MysqlInventarioRepository
+  implements InventarioRepository, CatalogoRepository
+{
   constructor(private readonly dataSource: DataSource) {}
 
   private get manager(): EntityManager {
@@ -35,6 +39,33 @@ export class MysqlInventarioRepository implements InventarioRepository {
       precioBase: Number(registro.precioBase),
       stockMinimo: Number(registro.stockMinimo),
     };
+  }
+
+  async crearProducto(datos: NuevoProducto): Promise<Producto> {
+    const repo = this.manager.getRepository(ProductoOrmEntity);
+    return this.convertirProducto(
+      await repo.save(
+        repo.create({
+          ...datos,
+          precioBase: String(datos.precioBase),
+          stockMinimo: String(datos.stockMinimo),
+        }),
+      ),
+    );
+  }
+  async listarPedidos(clienteId?: number): Promise<Pedido[]> {
+    const registros = await this.manager.getRepository(PedidoOrmEntity).find({
+      where: clienteId === undefined ? {} : { clienteId },
+      order: { id: 'DESC' },
+    });
+    return registros.map((registro) => this.convertirPedido(registro));
+  }
+  async listarMermas(): Promise<Merma[]> {
+    return (
+      await this.manager
+        .getRepository(MermaOrmEntity)
+        .find({ order: { id: 'DESC' } })
+    ).map((registro) => ({ ...registro, cantidad: Number(registro.cantidad) }));
   }
 
   async listarProductos(): Promise<Producto[]> {

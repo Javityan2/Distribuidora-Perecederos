@@ -1,3 +1,5 @@
+import type { CatalogoRepository } from '../dominio/catalogo.repository';
+import type { NuevoProducto } from '../dominio/entidades';
 /* eslint-disable @typescript-eslint/require-await -- El adaptador en memoria cumple el contrato asíncrono del repositorio. */
 import { InventarioRepository } from '../dominio/inventario.repository';
 import {
@@ -13,7 +15,9 @@ import {
   PedidoNoEncontradoError,
 } from '../dominio/errores';
 
-export class InMemoryInventarioRepository implements InventarioRepository {
+export class InMemoryInventarioRepository
+  implements InventarioRepository, CatalogoRepository
+{
   private productos: Producto[];
   private lotes: Lote[];
   private pedidos: Pedido[] = [];
@@ -38,6 +42,7 @@ export class InMemoryInventarioRepository implements InventarioRepository {
     });
     await anterior;
     const copia = structuredClone({
+      productos: this.productos,
       lotes: this.lotes,
       pedidos: this.pedidos,
       mermas: this.mermas,
@@ -46,6 +51,7 @@ export class InMemoryInventarioRepository implements InventarioRepository {
     try {
       return await operacion();
     } catch (error) {
+      this.productos = copia.productos;
       this.lotes = copia.lotes;
       this.pedidos = copia.pedidos;
       this.mermas = copia.mermas;
@@ -56,6 +62,21 @@ export class InMemoryInventarioRepository implements InventarioRepository {
     }
   }
 
+  async crearProducto(datos: NuevoProducto) {
+    const producto = {
+      ...structuredClone(datos),
+      id: Math.max(0, ...this.productos.map((p) => p.id)) + 1,
+    };
+    this.productos.push(producto);
+    return structuredClone(producto);
+  }
+  async listarPedidos(clienteId?: number) {
+    return structuredClone(
+      this.pedidos
+        .filter((p) => clienteId === undefined || p.clienteId === clienteId)
+        .sort((a, b) => b.id - a.id),
+    );
+  }
   async listarProductos() {
     return structuredClone(this.productos);
   }
