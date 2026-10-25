@@ -14,8 +14,9 @@ También se agregó persistencia en MySQL, validación de datos, autenticación 
 - `distribuidora-app/src/comun/`: filtro HTTP, interceptor de respuestas, middleware de peticiones y validación de identificadores.
 - `distribuidora-app/src/database/`: conexión, migraciones y datos iniciales.
 - `distribuidora-app/peticiones.http`: peticiones reproducibles para REST Client.
-- `docs/`: fuentes de los documentos del proyecto.
-- `output/`: documentos PDF y resultados de las pruebas de integración.
+- `docs/`: fuentes de la documentación e imágenes institucionales.
+- `docs/entregas/`: documentos PDF de los avances.
+- `docs/evidencias/`: resultados de las pruebas de integración.
 
 ## Separación de responsabilidades
 
@@ -175,7 +176,7 @@ Las pruebas unitarias cubren las reglas, la precisión decimal, el hash, los ide
 
 La integración MySQL crea una base temporal separada, aplica las dos migraciones y prueba registro, login, permisos, propiedad de pedidos, surtido FEFO, mermas, rollback, concurrencia, metadatos, Swagger y CORS. Esa prueba requiere permisos para crear y eliminar su propia base `distribuidora_test_<timestamp>`. La base de trabajo no se modifica.
 
-Los resultados se encuentran en `output/pruebas-avance2.json`. Las peticiones de REST Client complementan las pruebas automatizadas y utilizan las credenciales locales del seed.
+Los resultados se encuentran en `docs/evidencias/pruebas-avance2.json`. Las peticiones de REST Client complementan las pruebas automatizadas y utilizan las credenciales locales del seed.
 
 ## Alcance actual
 
@@ -183,4 +184,4 @@ El proyecto corresponde al servicio central del avance 2. Las líneas se reciben
 
 La interfaz de usuario de los avances posteriores consumirá esta API. El catálogo público, el contrato de respuesta y el control de acceso constituyen la conexión con esa capa.
 
-Los documentos se encuentran en [Avance 01](output/pdf/avance-01-corregido.pdf) y [Avance 02](output/pdf/avance-02-servicio-seguridad.pdf).
+Los documentos se encuentran en [Avance 01](docs/entregas/avance-01-corregido.pdf) y [Avance 02](docs/entregas/avance-02-servicio-seguridad.pdf).

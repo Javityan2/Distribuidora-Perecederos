@@ -116,6 +116,6 @@ p('Verificación adicional','Heading2')
 p('npm test -- --runInBand ejecuta los escenarios y pruebas de límites del stock mínimo, referencias inexistentes, fechas, aislamiento de datos, contrato de usuarios y surtidos concurrentes. npm run build comprueba la compilación. npm run test:e2e valida el endpoint inicial existente de NestJS.')
 p('Correcciones atendidas','Heading2')
 p('Glosario ampliado; reglas restrictivas documentadas; ambos diagramas incorporados en este PDF; servicio de inventario implementado; repositorios en memoria operables; tres escenarios con aserciones; tipo NuevoLote corregido.')
-SimpleDocTemplate(str(root/'output/pdf/avance-01-corregido.pdf'),pagesize=(595.28,841.89),rightMargin=48,leftMargin=48,topMargin=48,bottomMargin=58,title='Distribuidora de perecederos - Avance 01 corregido',author='Equipo 4').build(story,onFirstPage=footer,onLaterPages=footer)
+SimpleDocTemplate(str(root/'docs/entregas/avance-01-corregido.pdf'),pagesize=(595.28,841.89),rightMargin=48,leftMargin=48,topMargin=48,bottomMargin=58,title='Distribuidora de perecederos - Avance 01 corregido',author='Equipo 4').build(story,onFirstPage=footer,onLaterPages=footer)
 (root/'docs/avance-01-contenido.md').write_text('\n\n'.join(source),encoding='utf-8')
 

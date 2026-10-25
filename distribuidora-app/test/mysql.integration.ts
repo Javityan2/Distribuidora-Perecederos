@@ -541,9 +541,9 @@ async function ejecutar() {
     });
     assert.equal(origenAjeno.headers.get('access-control-allow-origin'), null);
     ok('Swagger generado desde código y CORS limitado a orígenes configurados');
-    mkdirSync('../output', { recursive: true });
+    mkdirSync('../docs/evidencias', { recursive: true });
     writeFileSync(
-      '../output/pruebas-avance2.json',
+      '../docs/evidencias/pruebas-avance2.json',
       JSON.stringify(
         {
           fecha: new Date().toISOString(),
