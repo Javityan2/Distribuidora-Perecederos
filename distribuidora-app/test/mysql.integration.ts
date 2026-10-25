@@ -385,6 +385,19 @@ async function ejecutar() {
       'Metadatos, identificadores válidos, permisos actuales y propiedad de pedidos',
     );
     const p = await pedido();
+    const vacio = await llamada(
+      `/pedidos/${p}/surtidos`,
+      'POST',
+      { lineas: [] },
+      tl,
+    );
+    assert.equal(vacio.status, 409);
+    assert.equal(
+      (await db.getRepository(PedidoOrmEntity).findOneByOrFail({ id: p }))
+        .estado,
+      'recibido',
+    );
+
     const surtir = (id: number, cantidad: number) =>
       llamada<MovimientoSurtido[]>(
         `/pedidos/${id}/surtidos`,
@@ -403,7 +416,9 @@ async function ejecutar() {
       (await lotes.findOneByOrFail({ id: caducado.id })).cantidadDisponible,
       '50.000',
     );
-    ok('Surtido FEFO, exclusión de caducados y rechazo de doble surtido');
+    ok(
+      'Surtido vacío 409, FEFO, exclusión de caducados y rechazo de doble surtido',
+    );
     const p2 = await pedido();
     assert.equal((await surtir(p2, 9)).status, 409);
     assert.equal((await surtir(p2, 4)).status, 409);

@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-10-25T09:54:57.285Z",
+  "fecha": "2026-10-25T10:03:45.323Z",
   "base": "temporal aislada, eliminada al terminar",
   "resultados": [
     {
@@ -23,7 +23,7 @@
       "resultado": "OK"
     },
     {
-      "caso": "Surtido FEFO, exclusión de caducados y rechazo de doble surtido",
+      "caso": "Surtido vacío 409, FEFO, exclusión de caducados y rechazo de doble surtido",
       "resultado": "OK"
     },
     {
